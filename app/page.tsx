@@ -277,10 +277,11 @@ export default function HomePage() {
       {/* 테이블 헤더 (데스크탑) */}
       <div
         className="hidden lg:grid bg-gray-50 rounded-xl px-4 py-2.5 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide gap-3"
-        style={{ gridTemplateColumns: editMode ? '32px 52px minmax(180px,2.5fr) 110px 80px minmax(100px,1fr) 105px 140px 95px 110px 60px' : '52px minmax(180px,2.5fr) 110px 80px minmax(100px,1fr) 105px 140px 95px 110px 60px' }}
+        style={{ gridTemplateColumns: editMode ? '32px 52px 60px minmax(160px,2fr) 100px 80px minmax(90px,1fr) 100px 130px 90px 100px 60px' : '52px 60px minmax(160px,2fr) 100px 80px minmax(90px,1fr) 100px 130px 90px 100px 60px' }}
       >
         {editMode && <div />}
         <div />
+        <div>차수</div>
         <div>상품명 / 코드</div>
         <div>컬러</div>
         <div>발주수량</div>
@@ -319,7 +320,7 @@ export default function HomePage() {
                 {/* 데스크탑 한 줄 레이아웃 */}
                 <div
                   className="hidden lg:grid items-center gap-3"
-                  style={{ gridTemplateColumns: editMode ? '32px 52px minmax(180px,2.5fr) 110px 80px minmax(100px,1fr) 105px 140px 95px 110px 60px' : '52px minmax(180px,2.5fr) 110px 80px minmax(100px,1fr) 105px 140px 95px 110px 60px' }}
+                  style={{ gridTemplateColumns: editMode ? '32px 52px 60px minmax(160px,2fr) 100px 80px minmax(90px,1fr) 100px 130px 90px 100px 60px' : '52px 60px minmax(160px,2fr) 100px 80px minmax(90px,1fr) 100px 130px 90px 100px 60px' }}
                 >
                   {/* 체크박스 (편집 모드) */}
                   {editMode && (
@@ -342,6 +343,17 @@ export default function HomePage() {
                       <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
                         <Package size={16} className="text-gray-400" />
                       </div>
+                    )}
+                  </div>
+
+                  {/* 차수 */}
+                  <div>
+                    {order.orderRound ? (
+                      <span className="inline-block bg-indigo-50 text-indigo-700 text-xs px-2 py-1 rounded-lg font-bold whitespace-nowrap">
+                        {order.orderRound}
+                      </span>
+                    ) : (
+                      <span className="text-gray-300 text-xs">-</span>
                     )}
                   </div>
 
@@ -454,6 +466,11 @@ export default function HomePage() {
                       <p className="text-sm font-semibold text-gray-800 leading-snug">{order.productName}</p>
                       <p className="text-xs text-gray-400 mt-0.5">{order.productCode}</p>
                       <div className="flex gap-1.5 mt-1 flex-wrap">
+                        {order.orderRound && (
+                          <span className="bg-indigo-50 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-bold">
+                            {order.orderRound}
+                          </span>
+                        )}
                         <span className="bg-purple-50 text-purple-700 text-xs px-2 py-0.5 rounded-full">{order.colorName}</span>
                         <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">{order.orderQty.toLocaleString()}개</span>
                         <StatusBadge status={order.status} />

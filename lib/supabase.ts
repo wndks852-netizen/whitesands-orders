@@ -26,6 +26,7 @@ export function rowToOrder(row: any): Order {
   return {
     id: row.id,
     orderDate: row.order_date,
+    orderRound: row.order_round || '',
     category: row.category,
     productId: row.product_id,
     productCode: row.product_code,

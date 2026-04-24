@@ -24,6 +24,7 @@ export interface Product {
 export interface Order {
   id: string
   orderDate: string
+  orderRound: string
   category: Category
   productId: string | null
   productCode: string
@@ -43,4 +44,13 @@ export interface Order {
   memo: string
   createdAt?: string
   updatedAt?: string
+}
+
+export interface WarehouseLog {
+  id: string
+  orderId: string
+  logDate: string
+  qty: number
+  note: string
+  createdAt: string
 }
