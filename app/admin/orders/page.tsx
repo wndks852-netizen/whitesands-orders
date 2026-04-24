@@ -1,13 +1,14 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle, Package } from 'lucide-react'
+import { CheckCircle, Package, Download } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Product, PaymentType, DeliveryDest } from '@/lib/types'
 import { DELIVERY_DESTS, QUICK_FACTORIES, ALL_MATERIALS } from '@/lib/constants'
 import { SAMPLE_ORDERS } from '@/lib/sampleOrders'
 import ProductSearchInput from '@/components/ProductSearchInput'
 import DatePickerWithDay from '@/components/DatePickerWithDay'
+import { generateOrderExcel } from '@/lib/generateOrderExcel'
 
 export default function AdminOrdersPage() {
   const router = useRouter()
@@ -15,9 +16,12 @@ export default function AdminOrdersPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [saving, setSaving] = useState(false)
   const [seedLoading, setSeedLoading] = useState(false)
+  const [excelLoading, setExcelLoading] = useState(false)
+  const [lastRegisteredOrders, setLastRegisteredOrders] = useState<any[]>([])
 
   const [form, setForm] = useState({
     orderDate: new Date().toISOString().split('T')[0],
+    orderRound: '',
     factory: '',
     factoryPaymentType: '계약금선납' as PaymentType,
     deliveryDestination: '주희물류' as DeliveryDest,
@@ -71,8 +75,36 @@ export default function AdminOrdersPage() {
       memo: form.memo,
     }))
     await supabase.from('orders').insert(rows)
+    setLastRegisteredOrders(rows)
     setSaving(false)
     setStep(3)
+  }
+
+  const handleDownloadExcel = async () => {
+    if (!selectedProduct || lastRegisteredOrders.length === 0) return
+    setExcelLoading(true)
+    try {
+      await generateOrderExcel(lastRegisteredOrders.map(o => ({
+        brand: selectedProduct.brand || '화이트샌즈',
+        productName: selectedProduct.productName,
+        productCode: selectedProduct.productCode,
+        colorName: o.color_name,
+        colorCode: o.color_code,
+        orderRound: form.orderRound || `${new Date().getFullYear().toString().slice(2)}-1차`,
+        factory: form.factory,
+        orderDate: form.orderDate,
+        expectedDeliveryDate: form.expectedDeliveryDate,
+        orderQty: o.order_qty,
+        materials: selectedMaterials,
+        imageUrl: selectedProduct.imageUrl,
+        category: selectedProduct.category,
+        size: selectedProduct.size,
+      })))
+    } catch (e) {
+      console.error(e)
+      alert('엑셀 생성 중 오류가 발생했습니다.')
+    }
+    setExcelLoading(false)
   }
 
   const handleSeedSample = async () => {
@@ -80,6 +112,23 @@ export default function AdminOrdersPage() {
     await supabase.from('orders').insert(SAMPLE_ORDERS)
     setSeedLoading(false)
     alert('샘플 발주 데이터 3건이 추가되었습니다.')
+  }
+
+  const handleReset = () => {
+    setStep(1)
+    setSelectedProduct(null)
+    setLastRegisteredOrders([])
+    setForm({
+      orderDate: new Date().toISOString().split('T')[0],
+      orderRound: '',
+      factory: '',
+      factoryPaymentType: '계약금선납',
+      deliveryDestination: '주희물류',
+      expectedDeliveryDate: '',
+      memo: '',
+      colorSelections: {},
+    })
+    setSelectedMaterials(['원단', '행택', '지퍼백', '메인라벨', '케어라벨'])
   }
 
   return (
@@ -188,12 +237,23 @@ export default function AdminOrdersPage() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
             <h3 className="text-sm font-semibold text-gray-700">생산 정보</h3>
 
-            <div>
-              <label className="text-xs font-semibold text-gray-500 block mb-1">발주일</label>
-              <DatePickerWithDay
-                value={form.orderDate}
-                onChange={v => setForm(f => ({ ...f, orderDate: v }))}
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">발주일</label>
+                <DatePickerWithDay
+                  value={form.orderDate}
+                  onChange={v => setForm(f => ({ ...f, orderDate: v }))}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 block mb-1">차수 (예: 26-1차)</label>
+                <input
+                  value={form.orderRound}
+                  onChange={e => setForm(f => ({ ...f, orderRound: e.target.value }))}
+                  placeholder="26-1차"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                />
+              </div>
             </div>
 
             <div>
@@ -304,31 +364,39 @@ export default function AdminOrdersPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
           <CheckCircle size={48} className="mx-auto mb-4 text-green-500" />
           <h2 className="text-lg font-bold text-gray-800 mb-2">발주가 등록되었습니다!</h2>
-          <p className="text-sm text-gray-400 mb-6">발주현황 페이지에서 확인할 수 있습니다.</p>
-          <div className="flex gap-3 justify-center">
+          <p className="text-sm text-gray-400 mb-2">발주현황 페이지에서 확인할 수 있습니다.</p>
+          {selectedProduct && (
+            <div className="mb-6 p-3 bg-gray-50 rounded-xl text-xs text-gray-500 text-left">
+              <p><span className="font-semibold">상품:</span> {selectedProduct.productName}</p>
+              <p><span className="font-semibold">컬러:</span> {lastRegisteredOrders.map(o => o.color_name).join(', ')}</p>
+              <p><span className="font-semibold">총 수량:</span> {lastRegisteredOrders.reduce((s, o) => s + o.order_qty, 0).toLocaleString()}개</p>
+              <p><span className="font-semibold">생산처:</span> {form.factory}</p>
+            </div>
+          )}
+          <div className="flex flex-col gap-3">
+            {/* 엑셀 다운로드 버튼 */}
             <button
-              onClick={() => {
-                setStep(1)
-                setSelectedProduct(null)
-                setForm({
-                  orderDate: new Date().toISOString().split('T')[0],
-                  factory: '',
-                  factoryPaymentType: '계약금선납',
-                  deliveryDestination: '주희물류',
-                  expectedDeliveryDate: '',
-                  memo: '',
-                  colorSelections: {},
-                })
-                setSelectedMaterials(['원단', '행택', '지퍼백', '메인라벨', '케어라벨'])
-              }}
-              className="px-6 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">
-              추가 발주 등록
+              onClick={handleDownloadExcel}
+              disabled={excelLoading}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: '#217346' }}
+            >
+              <Download size={16} />
+              {excelLoading ? '생성 중...' : '📥 발주서 엑셀 다운로드'}
             </button>
-            <button onClick={() => router.push('/')}
-              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
-              style={{ backgroundColor: '#1B2A4A' }}>
-              발주현황 보기
-            </button>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleReset}
+                className="flex-1 px-6 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">
+                추가 발주 등록
+              </button>
+              <button onClick={() => router.push('/')}
+                className="flex-1 px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
+                style={{ backgroundColor: '#1B2A4A' }}>
+                발주현황 보기
+              </button>
+            </div>
           </div>
         </div>
       )}
