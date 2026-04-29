@@ -86,7 +86,7 @@ export default function OrderDetailModal({ order, onClose, onUpdated }: Props) {
       const updatedLogs = [...logs, newLog]
       setLogs(updatedLogs)
       const newTotal = updatedLogs.reduce((s, l) => s + l.qty, 0)
-      await supabase.from('orders').update({ warehouse_qty: newTotal }).eq('id', order.id)
+      // DB 트리거가 warehouse_qty 자동 업데이트 → UI만 갱신
       onUpdated({ ...order, warehouseQty: newTotal })
     }
     setNewEntry({ date: dayjs().format('YYYY-MM-DD'), qty: '', note: '' })
@@ -99,7 +99,7 @@ export default function OrderDetailModal({ order, onClose, onUpdated }: Props) {
     const updatedLogs = logs.filter(l => l.id !== logId)
     setLogs(updatedLogs)
     const newTotal = updatedLogs.reduce((s, l) => s + l.qty, 0)
-    await supabase.from('orders').update({ warehouse_qty: newTotal }).eq('id', order.id)
+    // DB 트리거가 warehouse_qty 자동 업데이트 → UI만 갱신
     onUpdated({ ...order, warehouseQty: newTotal })
   }
 

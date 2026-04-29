@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { Product, Order } from './types'
+import { Product, Order, Accessory } from './types'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -44,6 +44,23 @@ export function rowToOrder(row: any): Order {
     materials: row.materials || {},
     warehouseQty: row.warehouse_qty,
     memo: row.memo || '',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+export function rowToAccessory(row: any): Accessory {
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    spec: row.spec || '',
+    unit: row.unit || 'EA',
+    stockQty: row.stock_qty || 0,
+    safetyQty: row.safety_qty || 0,
+    supplier: row.supplier || '',
+    imageUrl: row.image_url,
+    note: row.note || '',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

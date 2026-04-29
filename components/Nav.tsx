@@ -29,9 +29,12 @@ export default function Nav() {
   const navLinks = [
     { href: '/', label: '발주현황' },
     { href: '/incoming', label: '입고현황' },
+    { href: '/accessories', label: '부자재' },
     ...(isAdmin ? [
       { href: '/admin/products', label: '상품관리' },
       { href: '/admin/orders', label: '발주등록' },
+      { href: '/admin/accessories', label: '부자재관리' },
+      { href: '/admin/accessories/product-link', label: '부자재연결' },
     ] : []),
   ]
 

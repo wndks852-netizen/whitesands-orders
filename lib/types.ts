@@ -54,3 +54,31 @@ export interface WarehouseLog {
   note: string
   createdAt: string
 }
+
+export type AccessoryCategory = '라벨류' | '포장재' | '원단' | '장식' | '기타'
+
+export interface Accessory {
+  id: string
+  name: string
+  category: AccessoryCategory
+  spec: string
+  unit: string
+  stockQty: number
+  safetyQty: number
+  supplier: string
+  imageUrl: string | null
+  note: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface ProductAccessory {
+  id: string
+  productCode: string
+  productName: string
+  accessoryId: string
+  requiredQty: number
+  note: string
+  createdAt?: string
+  accessory?: Accessory
+}
