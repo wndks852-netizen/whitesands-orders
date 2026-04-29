@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Lock, Unlock, Umbrella } from 'lucide-react'
+import { Lock, Unlock } from 'lucide-react'
 import AdminGate from './AdminGate'
 import { ADMIN_PASSWORD } from '@/lib/constants'
 
@@ -13,6 +13,9 @@ export default function Nav() {
 
   useEffect(() => {
     setIsAdmin(sessionStorage.getItem('ws_admin_mode') === 'true')
+    const sync = () => setIsAdmin(sessionStorage.getItem('ws_admin_mode') === 'true')
+    window.addEventListener('storage', sync)
+    return () => window.removeEventListener('storage', sync)
   }, [])
 
   const handleAdminSuccess = () => {
@@ -40,38 +43,52 @@ export default function Nav() {
 
   return (
     <>
-      <nav style={{ backgroundColor: '#1B2A4A' }} className="sticky top-0 z-50 shadow-lg">
+      <nav className="sticky top-0 z-50 bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-8">
-              <Link href="/" className="flex items-center gap-2 text-white font-bold text-lg tracking-wide">
-                <Umbrella size={22} style={{ color: '#C9A96E' }} />
-                <span>WHITE SANDS</span>
-              </Link>
-              <div className="hidden md:flex gap-1">
-                {navLinks.map(link => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      pathname === link.href
-                        ? 'text-white bg-white/20'
-                        : 'text-white/70 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
+          <div className="flex items-center justify-between h-14">
+            {/* 로고 */}
+            <Link href="/" className="flex items-center flex-shrink-0">
+              <img
+                src="/logo.svg"
+                alt="WHITE SANDS"
+                className="h-5 w-auto"
+                style={{ filter: 'brightness(0)' }}
+              />
+            </Link>
+
+            {/* 데스크탑 탭 */}
+            <div className="hidden md:flex items-center gap-0.5 flex-1 ml-8">
+              {navLinks.map(link => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    pathname === link.href
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
             </div>
+
+            {/* 관리자 버튼 */}
             <button
               onClick={() => isAdmin ? handleLogout() : setShowAdminModal(true)}
-              className="flex items-center gap-2 text-white/70 hover:text-white transition-colors text-sm px-3 py-2 rounded-lg hover:bg-white/10"
+              className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                isAdmin
+                  ? 'border-gray-200 bg-gray-50 text-gray-700'
+                  : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+              }`}
             >
-              {isAdmin ? <Unlock size={16} style={{ color: '#C9A96E' }} /> : <Lock size={16} />}
-              <span className="hidden sm:inline">{isAdmin ? '관리자 모드' : '관리자'}</span>
+              {isAdmin
+                ? <><Unlock size={13} /><span className="hidden sm:inline">관리자 모드</span></>
+                : <><Lock size={13} /><span className="hidden sm:inline">관리자</span></>
+              }
             </button>
           </div>
+
           {/* 모바일 탭 */}
           <div className="md:hidden flex gap-1 pb-2 overflow-x-auto">
             {navLinks.map(link => (
@@ -80,8 +97,8 @@ export default function Nav() {
                 href={link.href}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
                   pathname === link.href
-                    ? 'text-white bg-white/20'
-                    : 'text-white/60 hover:text-white'
+                    ? 'bg-gray-100 text-gray-900'
+                    : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 {link.label}
@@ -90,6 +107,7 @@ export default function Nav() {
           </div>
         </div>
       </nav>
+
       {showAdminModal && (
         <AdminGate
           onSuccess={handleAdminSuccess}

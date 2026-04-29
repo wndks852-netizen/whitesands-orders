@@ -82,3 +82,11 @@ export interface ProductAccessory {
   createdAt?: string
   accessory?: Accessory
 }
+
+export interface MemoLog {
+  id: string
+  orderId: string
+  logDate: string
+  content: string
+  createdAt?: string
+}

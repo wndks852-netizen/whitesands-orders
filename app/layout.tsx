@@ -14,8 +14,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Nav />
         <DeliveryBanner />
-        <main className="max-w-7xl mx-auto px-4 py-6">{children}</main>
-        <footer className="text-center py-6 text-gray-400 text-sm mt-8 border-t border-gray-200">
+        <main className="max-w-7xl mx-auto px-4 py-6 min-h-screen">{children}</main>
+        <footer className="text-center py-5 text-xs text-gray-300 border-t border-gray-100 bg-white">
           © 2026 White Sands Production Team
         </footer>
       </body>

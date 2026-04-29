@@ -199,7 +199,7 @@ export default function HomePage() {
                   ? 'text-white shadow-sm'
                   : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300'
               }`}
-              style={groupTab === g.label ? { backgroundColor: '#1B2A4A' } : {}}
+              style={groupTab === g.label ? { backgroundColor: '#1a1a1a' } : {}}
             >
               {g.label} <span className="opacity-60 text-xs ml-1">({count})</span>
             </button>
@@ -276,7 +276,7 @@ export default function HomePage() {
 
       {/* 테이블 헤더 (데스크탑) */}
       <div
-        className="hidden lg:grid bg-gray-50 rounded-xl px-4 py-2.5 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide gap-3"
+        className="hidden lg:grid bg-gray-100 rounded-xl px-4 py-2.5 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide gap-3"
         style={{ gridTemplateColumns: editMode ? '32px 52px 60px minmax(160px,2fr) 100px 80px minmax(90px,1fr) 100px 130px 90px 100px 60px' : '52px 60px minmax(160px,2fr) 100px 80px minmax(90px,1fr) 100px 130px 90px 100px 60px' }}
       >
         {editMode && <div />}
@@ -313,8 +313,8 @@ export default function HomePage() {
               <div
                 key={order.id}
                 onClick={() => editMode ? setSelectedIds(prev => { const n = new Set(prev); n.has(order.id) ? n.delete(order.id) : n.add(order.id); return n }) : setDetailOrder(order)}
-                className={`bg-white rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer px-4 py-3 ${
-                  isSelected ? 'border-blue-300 bg-blue-50' : 'border-gray-100 hover:border-gray-200'
+                className={`bg-white rounded-xl border shadow-sm transition-all cursor-pointer px-4 py-3 ${
+                  isSelected ? 'border-gray-400 bg-gray-50' : 'border-gray-100 hover:border-gray-200 hover:shadow-md'
                 }`}
               >
                 {/* 데스크탑 한 줄 레이아웃 */}
@@ -349,7 +349,7 @@ export default function HomePage() {
                   {/* 차수 */}
                   <div>
                     {order.orderRound ? (
-                      <span className="inline-block bg-indigo-50 text-indigo-700 text-xs px-2 py-1 rounded-lg font-bold whitespace-nowrap">
+                      <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-lg font-bold whitespace-nowrap">
                         {order.orderRound}
                       </span>
                     ) : (
@@ -367,7 +367,7 @@ export default function HomePage() {
 
                   {/* 컬러 */}
                   <div>
-                    <span className="inline-block bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded-lg font-medium break-words">
+                    <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-lg font-medium break-words">
                       {order.colorName}
                     </span>
                   </div>
@@ -467,12 +467,12 @@ export default function HomePage() {
                       <p className="text-xs text-gray-400 mt-0.5">{order.productCode}</p>
                       <div className="flex gap-1.5 mt-1 flex-wrap">
                         {order.orderRound && (
-                          <span className="bg-indigo-50 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-bold">
+                          <span className="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full font-bold">
                             {order.orderRound}
                           </span>
                         )}
-                        <span className="bg-purple-50 text-purple-700 text-xs px-2 py-0.5 rounded-full">{order.colorName}</span>
-                        <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">{order.orderQty.toLocaleString()}개</span>
+                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{order.colorName}</span>
+                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full font-medium">{order.orderQty.toLocaleString()}개</span>
                         <StatusBadge status={order.status} />
                       </div>
                     </div>

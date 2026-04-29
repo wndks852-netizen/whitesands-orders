@@ -38,7 +38,7 @@ export default function DeliveryBanner() {
   const daysLeft = dayjs(first.expectedDeliveryDate).diff(dayjs(), 'day')
 
   return (
-    <div className="bg-orange-500 text-white px-4 py-2.5 flex items-center justify-between gap-4">
+    <div className="bg-gray-900 text-white px-4 py-2.5 flex items-center justify-between gap-4">
       <button
         onClick={() => router.push('/')}
         className="flex items-center gap-2 flex-1 text-left hover:opacity-90 transition-opacity"

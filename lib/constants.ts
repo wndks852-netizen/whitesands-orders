@@ -27,12 +27,12 @@ export const QUICK_FACTORIES = [
 ]
 
 export const STATUS_COLORS: Record<string, string> = {
-  '발주완료':       'bg-gray-100 text-gray-700 border-gray-200',
-  '계약금송금대기': 'bg-orange-100 text-orange-700 border-orange-200',
-  '샘플중':         'bg-yellow-100 text-yellow-700 border-yellow-200',
-  '생산중':         'bg-blue-100 text-blue-700 border-blue-200',
-  '화물출고':       'bg-purple-100 text-purple-700 border-purple-200',
-  '입고완료':       'bg-green-100 text-green-700 border-green-200',
+  '발주완료':       'bg-gray-100 text-gray-600 border-gray-200',
+  '계약금송금대기': 'bg-amber-50 text-amber-700 border-amber-200',
+  '샘플중':         'bg-yellow-50 text-yellow-700 border-yellow-200',
+  '생산중':         'bg-sky-50 text-sky-700 border-sky-200',
+  '화물출고':       'bg-violet-50 text-violet-700 border-violet-200',
+  '입고완료':       'bg-emerald-50 text-emerald-700 border-emerald-200',
 }
 
 export const STATUS_GROUPS = [
