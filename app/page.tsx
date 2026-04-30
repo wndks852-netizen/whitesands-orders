@@ -277,7 +277,7 @@ export default function HomePage() {
       {/* 테이블 헤더 (데스크탑) */}
       <div
         className="hidden lg:grid bg-gray-100 rounded-xl px-4 py-2.5 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide gap-3"
-        style={{ gridTemplateColumns: editMode ? '32px 52px 60px minmax(160px,2fr) 100px 80px minmax(90px,1fr) 100px 130px 90px 100px 60px' : '52px 60px minmax(160px,2fr) 100px 80px minmax(90px,1fr) 100px 130px 90px 100px 60px' }}
+        style={{ gridTemplateColumns: editMode ? '32px 52px 60px minmax(160px,2fr) 100px 100px 90px minmax(80px,0.8fr) 100px 90px 130px 90px 110px 60px' : '52px 60px minmax(160px,2fr) 100px 100px 90px minmax(80px,0.8fr) 100px 90px 130px 90px 110px 60px' }}
       >
         {editMode && <div />}
         <div />
@@ -285,6 +285,8 @@ export default function HomePage() {
         <div>상품명 / 코드</div>
         <div>컬러</div>
         <div>발주수량</div>
+        <div>입고수량</div>
+        <div>잔량</div>
         <div>생산처</div>
         <div>예상납기</div>
         <div>부자재</div>
@@ -320,7 +322,7 @@ export default function HomePage() {
                 {/* 데스크탑 한 줄 레이아웃 */}
                 <div
                   className="hidden lg:grid items-center gap-3"
-                  style={{ gridTemplateColumns: editMode ? '32px 52px 60px minmax(160px,2fr) 100px 80px minmax(90px,1fr) 100px 130px 90px 100px 60px' : '52px 60px minmax(160px,2fr) 100px 80px minmax(90px,1fr) 100px 130px 90px 100px 60px' }}
+                  style={{ gridTemplateColumns: editMode ? '32px 52px 60px minmax(160px,2fr) 100px 100px 90px minmax(80px,0.8fr) 100px 90px 130px 90px 110px 60px' : '52px 60px minmax(160px,2fr) 100px 100px 90px minmax(80px,0.8fr) 100px 90px 130px 90px 110px 60px' }}
                 >
                   {/* 체크박스 (편집 모드) */}
                   {editMode && (
@@ -376,6 +378,33 @@ export default function HomePage() {
                   <div className="text-sm font-bold text-gray-800 whitespace-nowrap">
                     {order.orderQty.toLocaleString()}
                     <span className="text-xs text-gray-400 font-normal ml-0.5">개</span>
+                  </div>
+
+                  {/* 입고수량 */}
+                  <div className="text-sm font-bold whitespace-nowrap">
+                    <span className={(order.warehouseQty || 0) > 0 ? 'text-emerald-600' : 'text-gray-300'}>
+                      {(order.warehouseQty || 0).toLocaleString()}
+                    </span>
+                    <span className="text-xs text-gray-400 font-normal ml-0.5">개</span>
+                  </div>
+
+                  {/* 잔량 */}
+                  <div className="whitespace-nowrap">
+                    {(() => {
+                      const remain = order.orderQty - (order.warehouseQty || 0)
+                      if (remain < 0) return (
+                        <span className="text-xs font-bold text-amber-500">+{Math.abs(remain).toLocaleString()} 초과</span>
+                      )
+                      if (remain === 0) return (
+                        <span className="text-xs font-bold text-emerald-500">완료</span>
+                      )
+                      return (
+                        <span className="text-sm font-bold text-gray-500">
+                          {remain.toLocaleString()}
+                          <span className="text-xs font-normal ml-0.5">개</span>
+                        </span>
+                      )
+                    })()}
                   </div>
 
                   {/* 생산처 */}
@@ -472,7 +501,28 @@ export default function HomePage() {
                           </span>
                         )}
                         <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{order.colorName}</span>
-                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full font-medium">{order.orderQty.toLocaleString()}개</span>
+                        <span className="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full font-medium">
+                          발주 {order.orderQty.toLocaleString()}
+                        </span>
+                        {(order.warehouseQty || 0) > 0 && (
+                          <span className="bg-emerald-50 text-emerald-600 text-xs px-2 py-0.5 rounded-full font-medium">
+                            입고 {(order.warehouseQty || 0).toLocaleString()}
+                          </span>
+                        )}
+                        {(() => {
+                          const remain = order.orderQty - (order.warehouseQty || 0)
+                          if (remain > 0) return (
+                            <span className="bg-gray-50 text-gray-500 text-xs px-2 py-0.5 rounded-full">
+                              잔 {remain.toLocaleString()}
+                            </span>
+                          )
+                          if (remain < 0) return (
+                            <span className="bg-amber-50 text-amber-600 text-xs px-2 py-0.5 rounded-full font-bold">
+                              +{Math.abs(remain).toLocaleString()} 초과
+                            </span>
+                          )
+                          return <span className="bg-emerald-50 text-emerald-600 text-xs px-2 py-0.5 rounded-full font-bold">완료</span>
+                        })()}
                         <StatusBadge status={order.status} />
                       </div>
                     </div>
@@ -515,6 +565,42 @@ export default function HomePage() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* 하단 합계 바 */}
+      {filtered.length > 0 && (
+        <div className="mt-5 flex justify-end">
+          <div className="bg-white border border-gray-200 rounded-2xl px-6 py-4 shadow-sm flex items-center gap-6 flex-wrap text-sm">
+            <div className="text-center">
+              <p className="text-xs text-gray-400 mb-1">조회 건수</p>
+              <p className="text-lg font-bold text-gray-900">{filtered.length}<span className="text-sm font-normal text-gray-400 ml-1">건</span></p>
+            </div>
+            <div className="w-px h-8 bg-gray-200" />
+            <div className="text-center">
+              <p className="text-xs text-gray-400 mb-1">전체 발주수량</p>
+              <p className="text-lg font-bold text-gray-900">
+                {filtered.reduce((s, o) => s + o.orderQty, 0).toLocaleString()}
+                <span className="text-sm font-normal text-gray-400 ml-1">개</span>
+              </p>
+            </div>
+            <div className="w-px h-8 bg-gray-200" />
+            <div className="text-center">
+              <p className="text-xs text-gray-400 mb-1">총 입고수량</p>
+              <p className="text-lg font-bold text-emerald-600">
+                {filtered.reduce((s, o) => s + (o.warehouseQty || 0), 0).toLocaleString()}
+                <span className="text-sm font-normal text-gray-400 ml-1">개</span>
+              </p>
+            </div>
+            <div className="w-px h-8 bg-gray-200" />
+            <div className="text-center">
+              <p className="text-xs text-gray-400 mb-1">총 잔량</p>
+              <p className="text-lg font-bold text-amber-500">
+                {Math.max(0, filtered.reduce((s, o) => s + o.orderQty - (o.warehouseQty || 0), 0)).toLocaleString()}
+                <span className="text-sm font-normal text-gray-400 ml-1">개</span>
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

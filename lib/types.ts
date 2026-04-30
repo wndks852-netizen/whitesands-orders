@@ -1,5 +1,7 @@
 export type Category = '양산' | '모자' | '악세사리' | '블랙샌즈'
-export type OrderStatus = '발주완료' | '계약금송금대기' | '샘플중' | '생산중' | '화물출고' | '입고완료'
+export type OrderStatus =
+  | '발주완료' | '계약금송금대기' | '샘플중' | '생산중'
+  | '화물출고' | '1차입고' | '2차입고' | '3차입고' | '4차입고' | '입고완료'
 export type PaymentType = '계약금선납' | '바로생산'
 export type DeliveryDest = '주희물류' | '제이에스컴퍼니'
 
