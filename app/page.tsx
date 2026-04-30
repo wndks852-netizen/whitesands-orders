@@ -272,7 +272,37 @@ export default function HomePage() {
         </div>
       )}
 
-      <p className="text-xs text-gray-400 mb-3">총 {filtered.length}건</p>
+      {/* 상단 요약 바 — 필터 아래, 리스트 위 */}
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
+        <p className="text-xs text-gray-400">총 <span className="font-semibold text-gray-600">{filtered.length}</span>건</p>
+        {filtered.length > 0 && (
+          <div className="flex items-center gap-4 bg-white border border-gray-200 rounded-xl px-5 py-2.5 shadow-sm flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-400">전체 발주</span>
+              <span className="text-sm font-bold text-gray-900">
+                {filtered.reduce((s, o) => s + o.orderQty, 0).toLocaleString()}
+                <span className="text-xs font-normal text-gray-400 ml-0.5">개</span>
+              </span>
+            </div>
+            <div className="w-px h-4 bg-gray-200" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-400">총 입고</span>
+              <span className="text-sm font-bold text-emerald-600">
+                {filtered.reduce((s, o) => s + (o.warehouseQty || 0), 0).toLocaleString()}
+                <span className="text-xs font-normal text-gray-400 ml-0.5">개</span>
+              </span>
+            </div>
+            <div className="w-px h-4 bg-gray-200" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-400">잔량</span>
+              <span className="text-sm font-bold text-amber-500">
+                {Math.max(0, filtered.reduce((s, o) => s + o.orderQty - (o.warehouseQty || 0), 0)).toLocaleString()}
+                <span className="text-xs font-normal text-gray-400 ml-0.5">개</span>
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* 테이블 헤더 (데스크탑) */}
       <div
@@ -565,42 +595,6 @@ export default function HomePage() {
               </div>
             )
           })}
-        </div>
-      )}
-
-      {/* 하단 합계 바 */}
-      {filtered.length > 0 && (
-        <div className="mt-5 flex justify-end">
-          <div className="bg-white border border-gray-200 rounded-2xl px-6 py-4 shadow-sm flex items-center gap-6 flex-wrap text-sm">
-            <div className="text-center">
-              <p className="text-xs text-gray-400 mb-1">조회 건수</p>
-              <p className="text-lg font-bold text-gray-900">{filtered.length}<span className="text-sm font-normal text-gray-400 ml-1">건</span></p>
-            </div>
-            <div className="w-px h-8 bg-gray-200" />
-            <div className="text-center">
-              <p className="text-xs text-gray-400 mb-1">전체 발주수량</p>
-              <p className="text-lg font-bold text-gray-900">
-                {filtered.reduce((s, o) => s + o.orderQty, 0).toLocaleString()}
-                <span className="text-sm font-normal text-gray-400 ml-1">개</span>
-              </p>
-            </div>
-            <div className="w-px h-8 bg-gray-200" />
-            <div className="text-center">
-              <p className="text-xs text-gray-400 mb-1">총 입고수량</p>
-              <p className="text-lg font-bold text-emerald-600">
-                {filtered.reduce((s, o) => s + (o.warehouseQty || 0), 0).toLocaleString()}
-                <span className="text-sm font-normal text-gray-400 ml-1">개</span>
-              </p>
-            </div>
-            <div className="w-px h-8 bg-gray-200" />
-            <div className="text-center">
-              <p className="text-xs text-gray-400 mb-1">총 잔량</p>
-              <p className="text-lg font-bold text-amber-500">
-                {Math.max(0, filtered.reduce((s, o) => s + o.orderQty - (o.warehouseQty || 0), 0)).toLocaleString()}
-                <span className="text-sm font-normal text-gray-400 ml-1">개</span>
-              </p>
-            </div>
-          </div>
         </div>
       )}
 
