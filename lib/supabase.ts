@@ -4,7 +4,17 @@ import { Product, Order, Accessory } from './types'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  db: {
+    schema: 'public',
+  },
+  global: {
+    headers: {
+      'Accept-Profile': 'public',
+      'Content-Profile': 'public',
+    },
+  },
+})
 
 // DB row → 앱 타입 변환
 export function rowToProduct(row: any): Product {

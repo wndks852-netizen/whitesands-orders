@@ -34,6 +34,15 @@ interface Props {
   onUpdated: (updated: Order) => void
 }
 
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SB_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+const sbHeaders = (extra?: Record<string, string>) => ({
+  'apikey': SB_KEY,
+  'Authorization': `Bearer ${SB_KEY}`,
+  ...extra,
+})
+
 // ── 컴포넌트 ──────────────────────────────────────────────────
 export default function OrderDetailModal({ order, onClose, onUpdated }: Props) {
   // 기본 정보 상태
@@ -62,37 +71,39 @@ export default function OrderDetailModal({ order, onClose, onUpdated }: Props) {
     ? dayjs(order.expectedDeliveryDate).diff(dayjs(), 'day')
     : null
 
-  // ── 데이터 로드 ─────────────────────────────────────────────
+  // ── 데이터 로드 (fetch 직접 호출) ───────────────────────────
   const loadWlogs = useCallback(async () => {
     setWLoading(true)
-    const { data, error } = await supabase
-      .from('warehouse_logs')
-      .select('*')
-      .eq('order_id', order.id)
-      .order('log_date', { ascending: true })
-      .order('created_at', { ascending: true })
-
-    if (error) {
-      console.error('warehouse_logs 조회 오류:', error)
-    } else {
-      setWlogs(data || [])
+    try {
+      const res = await fetch(
+        `${SB_URL}/rest/v1/warehouse_logs?order_id=eq.${order.id}&order=log_date.asc,created_at.asc`,
+        { headers: sbHeaders() }
+      )
+      if (res.ok) {
+        setWlogs(await res.json())
+      } else {
+        console.error('warehouse_logs 조회 오류:', await res.text())
+      }
+    } catch (e) {
+      console.error('네트워크 오류:', e)
     }
     setWLoading(false)
   }, [order.id])
 
   const loadMlogs = useCallback(async () => {
     setMLoading(true)
-    const { data, error } = await supabase
-      .from('order_memo_logs')
-      .select('*')
-      .eq('order_id', order.id)
-      .order('log_date', { ascending: false })
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('order_memo_logs 조회 오류:', error)
-    } else {
-      setMlogs(data || [])
+    try {
+      const res = await fetch(
+        `${SB_URL}/rest/v1/order_memo_logs?order_id=eq.${order.id}&order=log_date.desc,created_at.desc`,
+        { headers: sbHeaders() }
+      )
+      if (res.ok) {
+        setMlogs(await res.json())
+      } else {
+        console.error('order_memo_logs 조회 오류:', await res.text())
+      }
+    } catch (e) {
+      console.error('네트워크 오류:', e)
     }
     setMLoading(false)
   }, [order.id])
@@ -108,7 +119,7 @@ export default function OrderDetailModal({ order, onClose, onUpdated }: Props) {
   const isOver = remaining < 0
   const pct = order.orderQty > 0 ? Math.min(Math.round((totalIn / order.orderQty) * 100), 100) : 0
 
-  // ── 입고 등록 ────────────────────────────────────────────────
+  // ── 입고 등록 (fetch) ─────────────────────────────────────────
   const handleAddWlog = async () => {
     const qty = parseInt(wQty)
     if (isNaN(qty) || qty <= 0) {
@@ -116,127 +127,105 @@ export default function OrderDetailModal({ order, onClose, onUpdated }: Props) {
       return
     }
     setWAdding(true)
+    try {
+      const res = await fetch(`${SB_URL}/rest/v1/warehouse_logs`, {
+        method: 'POST',
+        headers: sbHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
+        body: JSON.stringify({
+          order_id: order.id,
+          log_date: wDate || dayjs().format('YYYY-MM-DD'),
+          qty,
+          note: wNote.trim(),
+        }),
+      })
+      const responseText = await res.text()
+      if (!res.ok) {
+        console.error('입고 등록 오류:', responseText)
+        alert(`입고 등록 실패: ${responseText}`)
+        setWAdding(false)
+        return
+      }
+      const data = JSON.parse(responseText)
+      const newLog: WLog = Array.isArray(data) ? data[0] : data
+      console.log('입고 등록 성공:', newLog)
 
-    const insertPayload = {
-      order_id: order.id,
-      log_date: wDate || dayjs().format('YYYY-MM-DD'),
-      qty,
-      note: wNote.trim(),
+      const updated = [...wlogs, newLog].sort((a, b) =>
+        a.log_date.localeCompare(b.log_date) || a.created_at.localeCompare(b.created_at)
+      )
+      setWlogs(updated)
+      const newTotal = updated.reduce((s, l) => s + l.qty, 0)
+
+      await fetch(`${SB_URL}/rest/v1/orders?id=eq.${order.id}`, {
+        method: 'PATCH',
+        headers: sbHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ warehouse_qty: newTotal }),
+      })
+
+      onUpdated({ ...order, warehouseQty: newTotal })
+      setWDate(dayjs().format('YYYY-MM-DD'))
+      setWQty('')
+      setWNote('')
+    } catch (e) {
+      console.error('네트워크 오류:', e)
+      alert('네트워크 오류가 발생했습니다.')
     }
-
-    console.log('입고 등록 시도:', insertPayload)
-
-    const { data, error } = await supabase
-      .from('warehouse_logs')
-      .insert(insertPayload)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('입고 등록 오류:', error)
-      alert(`입고 등록 실패: ${error.message}\n\n테이블이 생성되었는지 확인해주세요.`)
-      setWAdding(false)
-      return
-    }
-
-    console.log('입고 등록 성공:', data)
-
-    const newLog: WLog = {
-      id: data.id,
-      order_id: data.order_id,
-      log_date: data.log_date,
-      qty: data.qty,
-      note: data.note || '',
-      created_at: data.created_at,
-    }
-    const updated = [...wlogs, newLog].sort((a, b) =>
-      a.log_date.localeCompare(b.log_date) || a.created_at.localeCompare(b.created_at)
-    )
-    setWlogs(updated)
-
-    const newTotal = updated.reduce((s, l) => s + l.qty, 0)
-    const { error: updateError } = await supabase
-      .from('orders')
-      .update({ warehouse_qty: newTotal })
-      .eq('id', order.id)
-
-    if (updateError) {
-      console.error('warehouse_qty 업데이트 오류:', updateError)
-    }
-
-    onUpdated({ ...order, warehouseQty: newTotal })
-
-    setWDate(dayjs().format('YYYY-MM-DD'))
-    setWQty('')
-    setWNote('')
     setWAdding(false)
   }
 
-  // ── 입고 삭제 ────────────────────────────────────────────────
+  // ── 입고 삭제 (fetch) ─────────────────────────────────────────
   const handleDeleteWlog = async (id: string) => {
     if (!confirm('이 입고 기록을 삭제하시겠습니까?')) return
-
-    const { error } = await supabase
-      .from('warehouse_logs')
-      .delete()
-      .eq('id', id)
-
-    if (error) {
-      alert(`삭제 실패: ${error.message}`)
-      return
-    }
-
+    const res = await fetch(`${SB_URL}/rest/v1/warehouse_logs?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: sbHeaders(),
+    })
+    if (!res.ok) { alert('삭제 실패'); return }
     const updated = wlogs.filter(l => l.id !== id)
     setWlogs(updated)
     const newTotal = updated.reduce((s, l) => s + l.qty, 0)
-    await supabase.from('orders').update({ warehouse_qty: newTotal }).eq('id', order.id)
+    await fetch(`${SB_URL}/rest/v1/orders?id=eq.${order.id}`, {
+      method: 'PATCH',
+      headers: sbHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ warehouse_qty: newTotal }),
+    })
     onUpdated({ ...order, warehouseQty: newTotal })
   }
 
-  // ── 메모 등록 ────────────────────────────────────────────────
+  // ── 메모 등록 (fetch) ─────────────────────────────────────────
   const handleAddMlog = async () => {
-    if (!mText.trim()) {
-      alert('메모 내용을 입력해주세요.')
-      return
-    }
+    if (!mText.trim()) { alert('메모 내용을 입력해주세요.'); return }
     setMAdding(true)
-
-    const insertPayload = {
-      order_id: order.id,
-      log_date: mDate || dayjs().format('YYYY-MM-DD'),
-      content: mText.trim(),
+    try {
+      const res = await fetch(`${SB_URL}/rest/v1/order_memo_logs`, {
+        method: 'POST',
+        headers: sbHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=representation' }),
+        body: JSON.stringify({
+          order_id: order.id,
+          log_date: mDate || dayjs().format('YYYY-MM-DD'),
+          content: mText.trim(),
+        }),
+      })
+      const responseText = await res.text()
+      if (!res.ok) { alert(`메모 등록 실패: ${responseText}`); setMAdding(false); return }
+      const data = JSON.parse(responseText)
+      const newMemo: MLog = Array.isArray(data) ? data[0] : data
+      console.log('메모 등록 성공:', newMemo)
+      setMlogs(prev => [newMemo, ...prev])
+      setMDate(dayjs().format('YYYY-MM-DD'))
+      setMText('')
+    } catch (e) {
+      alert('네트워크 오류가 발생했습니다.')
     }
-
-    console.log('메모 등록 시도:', insertPayload)
-
-    const { data, error } = await supabase
-      .from('order_memo_logs')
-      .insert(insertPayload)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('메모 등록 오류:', error)
-      alert(`메모 등록 실패: ${error.message}\n\norder_memo_logs 테이블이 생성되었는지 확인해주세요.`)
-      setMAdding(false)
-      return
-    }
-
-    console.log('메모 등록 성공:', data)
-
-    setMlogs(prev => [
-      { id: data.id, order_id: data.order_id, log_date: data.log_date, content: data.content, created_at: data.created_at },
-      ...prev,
-    ])
-    setMDate(dayjs().format('YYYY-MM-DD'))
-    setMText('')
     setMAdding(false)
   }
 
-  // ── 메모 삭제 ────────────────────────────────────────────────
+  // ── 메모 삭제 (fetch) ─────────────────────────────────────────
   const handleDeleteMlog = async (id: string) => {
-    const { error } = await supabase.from('order_memo_logs').delete().eq('id', id)
-    if (error) { alert(`삭제 실패: ${error.message}`); return }
+    const res = await fetch(`${SB_URL}/rest/v1/order_memo_logs?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: sbHeaders(),
+    })
+    if (!res.ok) { alert('삭제 실패'); return }
     setMlogs(prev => prev.filter(m => m.id !== id))
   }
 
@@ -470,7 +459,6 @@ export default function OrderDetailModal({ order, onClose, onUpdated }: Props) {
               <MessageSquare size={13} /> 날짜별 메모 기록
             </p>
 
-            {/* 메모 목록 */}
             {mLoading ? (
               <div className="flex items-center justify-center py-3 gap-2 text-xs text-gray-400">
                 <Loader2 size={14} className="animate-spin" /> 로딩 중...
@@ -491,7 +479,6 @@ export default function OrderDetailModal({ order, onClose, onUpdated }: Props) {
               </div>
             )}
 
-            {/* 메모 입력 */}
             <div className="pt-3 border-t border-gray-200 space-y-2">
               <input
                 type="date"
