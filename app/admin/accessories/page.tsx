@@ -6,8 +6,11 @@ import { Plus, Pencil, Trash2, Upload, Package, Search, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
 const ACCESSORY_CATEGORIES: AccessoryCategory[] = ['라벨류', '포장재', '원단', '장식', '기타']
+const BRANDS = ['화이트샌즈', '블랙샌즈', '기타']
 
 const emptyForm = () => ({
+  brand: '화이트샌즈',
+  productCode: '',
   name: '',
   category: '기타' as AccessoryCategory,
   spec: '',
@@ -15,6 +18,7 @@ const emptyForm = () => ({
   stockQty: 0,
   safetyQty: 0,
   supplier: '',
+  cost: 0,
   imageUrl: '',
   note: '',
 })
@@ -23,6 +27,7 @@ export default function AdminAccessoriesPage() {
   const [accessories, setAccessories] = useState<Accessory[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [brandFilter, setBrandFilter] = useState<string>('전체')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Accessory | null>(null)
   const [form, setForm] = useState(emptyForm())
@@ -33,7 +38,12 @@ export default function AdminAccessoriesPage() {
   const xlsxRef = useRef<HTMLInputElement>(null)
 
   const fetchAccessories = useCallback(async () => {
-    const { data } = await supabase.from('accessories').select('*').order('category').order('name')
+    const { data } = await supabase
+      .from('accessories')
+      .select('*')
+      .order('brand')
+      .order('category')
+      .order('name')
     if (data) setAccessories(data.map(rowToAccessory))
     setLoading(false)
   }, [])
@@ -44,6 +54,8 @@ export default function AdminAccessoriesPage() {
   const openEdit = (a: Accessory) => {
     setEditing(a)
     setForm({
+      brand: a.brand,
+      productCode: a.productCode,
       name: a.name,
       category: a.category,
       spec: a.spec,
@@ -51,6 +63,7 @@ export default function AdminAccessoriesPage() {
       stockQty: a.stockQty,
       safetyQty: a.safetyQty,
       supplier: a.supplier,
+      cost: a.cost,
       imageUrl: a.imageUrl || '',
       note: a.note,
     })
@@ -61,6 +74,8 @@ export default function AdminAccessoriesPage() {
     if (!form.name.trim()) return
     setSaving(true)
     const row = {
+      brand: form.brand,
+      product_code: form.productCode,
       name: form.name,
       category: form.category,
       spec: form.spec,
@@ -68,6 +83,7 @@ export default function AdminAccessoriesPage() {
       stock_qty: form.stockQty,
       safety_qty: form.safetyQty,
       supplier: form.supplier,
+      cost: form.cost,
       image_url: form.imageUrl || null,
       note: form.note,
     }
@@ -94,8 +110,6 @@ export default function AdminAccessoriesPage() {
     setUploading(false)
   }
 
-  // 엑셀 업로드로 부자재 일괄 등록
-  // 컬럼: A:부자재명 | B:카테고리 | C:규격 | D:단위 | E:재고수량 | F:안전재고 | G:공급업체 | H:비고
   const handleXlsxUpload = async (file: File) => {
     setXlsxUploading(true)
     try {
@@ -106,20 +120,21 @@ export default function AdminAccessoriesPage() {
       const dataRows = (rows as any[][]).slice(1).filter((r: any[]) => r[0])
 
       const insertData = dataRows.map((r: any[]) => ({
-        name: String(r[0] || '').trim(),
-        category: ACCESSORY_CATEGORIES.includes(r[1] as AccessoryCategory) ? r[1] : '기타',
-        spec: String(r[2] || '').trim(),
-        unit: String(r[3] || 'EA').trim(),
-        stock_qty: parseInt(r[4]) || 0,
-        safety_qty: parseInt(r[5]) || 0,
-        supplier: String(r[6] || '').trim(),
-        note: String(r[7] || '').trim(),
+        brand: String(r[0] || '화이트샌즈').trim(),
+        product_code: String(r[1] || '').trim(),
+        name: String(r[2] || '').trim(),
+        category: ACCESSORY_CATEGORIES.includes(r[3] as AccessoryCategory) ? r[3] : '기타',
+        spec: String(r[4] || '').trim(),
+        unit: String(r[5] || 'EA').trim(),
+        stock_qty: parseInt(r[6]) || 0,
+        safety_qty: parseInt(r[7]) || 0,
+        supplier: String(r[8] || '').trim(),
+        cost: parseInt(r[9]) || 0,
+        note: String(r[10] || '').trim(),
       }))
 
       if (insertData.length > 0) {
-        const { error } = await supabase
-          .from('accessories')
-          .upsert(insertData, { onConflict: 'name' })
+        const { error } = await supabase.from('accessories').insert(insertData)
         if (!error) {
           alert(`${insertData.length}개 부자재가 등록되었습니다.`)
           fetchAccessories()
@@ -136,9 +151,8 @@ export default function AdminAccessoriesPage() {
   const downloadTemplate = () => {
     const wb = XLSX.utils.book_new()
     const ws = XLSX.utils.aoa_to_sheet([
-      ['부자재명', '카테고리', '규격', '단위', '재고수량', '안전재고', '공급업체', '비고'],
-      ['메인라벨', '라벨류', '45x20mm', 'EA', 1000, 200, '(주)라벨컴퍼니', ''],
-      ['케어라벨', '라벨류', '30x50mm', 'EA', 500, 100, '', ''],
+      ['브랜드', '품번', '부자재명', '카테고리', '규격', '단위', '재고수량', '안전재고', '공급업체', '원가', '비고'],
+      ['화이트샌즈', 'WXHA0001', 'W로고(L) 골드', '장식', '25x20mm', 'EA', 0, 0, '중국 (Yongli)', 330, ''],
     ])
     XLSX.utils.book_append_sheet(wb, ws, '부자재목록')
     const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
@@ -149,9 +163,16 @@ export default function AdminAccessoriesPage() {
     a.click()
   }
 
-  const filtered = accessories.filter(a =>
-    !search || a.name.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = accessories.filter(a => {
+    if (brandFilter !== '전체' && a.brand !== brandFilter) return false
+    if (!search) return true
+    const q = search.toLowerCase()
+    return (
+      a.name.toLowerCase().includes(q) ||
+      a.productCode.toLowerCase().includes(q) ||
+      a.supplier.toLowerCase().includes(q)
+    )
+  })
 
   return (
     <div>
@@ -180,18 +201,30 @@ export default function AdminAccessoriesPage() {
         </div>
       </div>
 
-      {/* 엑셀 양식 안내 */}
+      {/* 안내 */}
       <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-700">
-        📋 엑셀 업로드 양식: <strong>부자재명 | 카테고리(라벨류/포장재/원단/장식/기타) | 규격 | 단위 | 재고수량 | 안전재고 | 공급업체 | 비고</strong>
-        <br />이미지는 등록 후 개별 수정에서 업로드하세요.
+        📋 엑셀 업로드 양식: <strong>브랜드 | 품번 | 부자재명 | 카테고리(라벨류/포장재/원단/장식/기타) | 규격 | 단위 | 재고수량 | 안전재고 | 공급업체 | 원가 | 비고</strong>
       </div>
 
-      {/* 검색 */}
-      <div className="relative mb-4">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="부자재명 검색..."
-          className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white" />
+      {/* 브랜드 필터 + 검색 */}
+      <div className="flex gap-2 flex-wrap mb-4">
+        {(['전체', ...BRANDS]).map(b => (
+          <button key={b} onClick={() => setBrandFilter(b)}
+            className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
+              brandFilter === b
+                ? 'text-white'
+                : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
+            }`}
+            style={brandFilter === b ? { backgroundColor: '#1B2A4A' } : {}}>
+            {b}
+          </button>
+        ))}
+        <div className="relative ml-auto">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="부자재명·품번 검색..."
+            className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white" />
+        </div>
       </div>
 
       {/* 테이블 */}
@@ -200,9 +233,9 @@ export default function AdminAccessoriesPage() {
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs">
+            <thead className="bg-gray-100 text-gray-500 text-xs">
               <tr>
-                {['이미지', '카테고리', '부자재명', '규격', '단위', '재고', '안전재고', '공급업체', ''].map(h => (
+                {['이미지', '브랜드', '품번', '카테고리', '부자재명', '규격', '단위', '재고', '안전재고', '원가', '공급업체', ''].map(h => (
                   <th key={h} className="px-3 py-3 text-left font-medium whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -216,6 +249,14 @@ export default function AdminAccessoriesPage() {
                       : <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center"><Package size={14} className="text-gray-400" /></div>
                     }
                   </td>
+                  <td className="px-3 py-2.5">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      acc.brand === '블랙샌즈'
+                        ? 'bg-gray-800 text-white'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>{acc.brand}</span>
+                  </td>
+                  <td className="px-3 py-2.5 text-gray-500 text-xs font-mono">{acc.productCode || '-'}</td>
                   <td className="px-3 py-2.5">
                     <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{acc.category}</span>
                   </td>
@@ -232,6 +273,9 @@ export default function AdminAccessoriesPage() {
                     </span>
                   </td>
                   <td className="px-3 py-2.5 text-gray-500 text-xs">{acc.safetyQty.toLocaleString()}</td>
+                  <td className="px-3 py-2.5 text-gray-500 text-xs">
+                    {acc.cost > 0 ? `₩${acc.cost.toLocaleString()}` : '-'}
+                  </td>
                   <td className="px-3 py-2.5 text-gray-500 text-xs truncate max-w-24">{acc.supplier || '-'}</td>
                   <td className="px-3 py-2.5" onClick={e => e.stopPropagation()}>
                     <div className="flex gap-1.5">
@@ -292,6 +336,19 @@ export default function AdminAccessoriesPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 block mb-1">브랜드</label>
+                  <select value={form.brand} onChange={e => setForm(f => ({ ...f, brand: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200">
+                    {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 block mb-1">품번</label>
+                  <input value={form.productCode} onChange={e => setForm(f => ({ ...f, productCode: e.target.value }))}
+                    placeholder="예: WXHA0001"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200" />
+                </div>
                 <div className="col-span-2">
                   <label className="text-xs font-semibold text-gray-500 block mb-1">부자재명 *</label>
                   <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
@@ -313,6 +370,12 @@ export default function AdminAccessoriesPage() {
                   <label className="text-xs font-semibold text-gray-500 block mb-1">규격/사이즈</label>
                   <input value={form.spec} onChange={e => setForm(f => ({ ...f, spec: e.target.value }))}
                     placeholder="예: 45x20mm"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200" />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 block mb-1">원가 (₩)</label>
+                  <input type="number" value={form.cost}
+                    onChange={e => setForm(f => ({ ...f, cost: parseInt(e.target.value) || 0 }))}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200" />
                 </div>
                 <div>

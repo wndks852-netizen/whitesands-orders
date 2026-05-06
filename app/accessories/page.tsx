@@ -5,11 +5,13 @@ import { Accessory, AccessoryCategory } from '@/lib/types'
 import { Search, Package, AlertTriangle } from 'lucide-react'
 
 const ACCESSORY_CATEGORIES: AccessoryCategory[] = ['라벨류', '포장재', '원단', '장식', '기타']
+const BRANDS = ['전체', '화이트샌즈', '블랙샌즈', '기타']
 
 export default function AccessoriesPage() {
   const [accessories, setAccessories] = useState<Accessory[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [brandFilter, setBrandFilter] = useState<string>('전체')
   const [categoryFilter, setCategoryFilter] = useState<string>('전체')
 
   useEffect(() => {
@@ -17,6 +19,7 @@ export default function AccessoriesPage() {
       const { data } = await supabase
         .from('accessories')
         .select('*')
+        .order('brand')
         .order('category')
         .order('name')
       if (data) setAccessories(data.map(rowToAccessory))
@@ -26,10 +29,21 @@ export default function AccessoriesPage() {
   }, [])
 
   const filtered = accessories.filter(a => {
+    if (brandFilter !== '전체') {
+      if (brandFilter === '기타') {
+        if (a.brand === '화이트샌즈' || a.brand === '블랙샌즈') return false
+      } else {
+        if (a.brand !== brandFilter) return false
+      }
+    }
     if (categoryFilter !== '전체' && a.category !== categoryFilter) return false
     if (search) {
       const q = search.toLowerCase()
-      return a.name.toLowerCase().includes(q) || a.supplier.toLowerCase().includes(q)
+      return (
+        a.name.toLowerCase().includes(q) ||
+        a.productCode.toLowerCase().includes(q) ||
+        a.supplier.toLowerCase().includes(q)
+      )
     }
     return true
   })
@@ -40,6 +54,7 @@ export default function AccessoriesPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold" style={{ color: '#1B2A4A' }}>부자재 현황</h1>
+        <span className="text-sm text-gray-400">{accessories.length}개 등록</span>
       </div>
 
       {/* 안전재고 경고 */}
@@ -52,23 +67,37 @@ export default function AccessoriesPage() {
         </div>
       )}
 
-      {/* 필터 */}
+      {/* 브랜드 탭 */}
+      <div className="flex gap-1.5 mb-3">
+        {BRANDS.map(brand => (
+          <button key={brand} onClick={() => setBrandFilter(brand)}
+            className={`px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all ${
+              brandFilter === brand
+                ? 'text-white'
+                : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
+            }`}
+            style={brandFilter === brand ? { backgroundColor: '#1B2A4A' } : {}}>
+            {brand}
+          </button>
+        ))}
+      </div>
+
+      {/* 카테고리 필터 + 검색 */}
       <div className="flex gap-2 flex-wrap mb-5">
         {(['전체', ...ACCESSORY_CATEGORIES] as string[]).map(cat => (
           <button key={cat} onClick={() => setCategoryFilter(cat)}
             className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
               categoryFilter === cat
-                ? 'text-white'
+                ? 'bg-gray-800 text-white'
                 : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'
-            }`}
-            style={categoryFilter === cat ? { backgroundColor: '#1B2A4A' } : {}}>
+            }`}>
             {cat}
           </button>
         ))}
         <div className="relative ml-auto">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="부자재명 검색"
+            placeholder="부자재명·품번 검색"
             className="pl-8 pr-4 py-1.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white" />
         </div>
       </div>
@@ -101,6 +130,9 @@ export default function AccessoriesPage() {
                 </div>
               )}
               <div>
+                {acc.productCode && (
+                  <p className="text-xs text-gray-400 mb-0.5">{acc.productCode}</p>
+                )}
                 <p className="text-xs font-semibold text-gray-800 leading-tight line-clamp-2">{acc.name}</p>
                 {acc.spec && <p className="text-xs text-gray-400 mt-0.5">{acc.spec}</p>}
               </div>
@@ -115,15 +147,28 @@ export default function AccessoriesPage() {
                     {acc.stockQty.toLocaleString()} {acc.unit}
                   </span>
                 </div>
+                {acc.cost > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-400">원가</span>
+                    <span className="text-xs text-gray-500">₩{acc.cost.toLocaleString()}</span>
+                  </div>
+                )}
                 {acc.safetyQty > 0 && (
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-400">안전재고</span>
                     <span className="text-xs text-gray-500">{acc.safetyQty.toLocaleString()} {acc.unit}</span>
                   </div>
                 )}
-                <span className="inline-block bg-gray-100 text-gray-500 text-xs px-1.5 py-0.5 rounded-full">
-                  {acc.category}
-                </span>
+                <div className="flex gap-1 flex-wrap">
+                  <span className="inline-block bg-gray-100 text-gray-500 text-xs px-1.5 py-0.5 rounded-full">
+                    {acc.category}
+                  </span>
+                  {acc.brand !== '화이트샌즈' && (
+                    <span className="inline-block bg-gray-800 text-white text-xs px-1.5 py-0.5 rounded-full">
+                      {acc.brand}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           ))}

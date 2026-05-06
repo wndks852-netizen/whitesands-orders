@@ -61,6 +61,8 @@ export type AccessoryCategory = '라벨류' | '포장재' | '원단' | '장식' 
 
 export interface Accessory {
   id: string
+  brand: string
+  productCode: string
   name: string
   category: AccessoryCategory
   spec: string
@@ -68,6 +70,7 @@ export interface Accessory {
   stockQty: number
   safetyQty: number
   supplier: string
+  cost: number
   imageUrl: string | null
   note: string
   createdAt?: string

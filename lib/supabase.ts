@@ -62,6 +62,8 @@ export function rowToOrder(row: any): Order {
 export function rowToAccessory(row: any): Accessory {
   return {
     id: row.id,
+    brand: row.brand || '화이트샌즈',
+    productCode: row.product_code || '',
     name: row.name,
     category: row.category,
     spec: row.spec || '',
@@ -69,6 +71,7 @@ export function rowToAccessory(row: any): Accessory {
     stockQty: row.stock_qty || 0,
     safetyQty: row.safety_qty || 0,
     supplier: row.supplier || '',
+    cost: row.cost || 0,
     imageUrl: row.image_url,
     note: row.note || '',
     createdAt: row.created_at,
