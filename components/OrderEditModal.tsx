@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Order, OrderStatus, PaymentType, DeliveryDest, Category } from '@/lib/types'
-import { ORDER_STATUSES, DELIVERY_DESTS, QUICK_FACTORIES, CATEGORIES } from '@/lib/constants'
+import { ORDER_STATUSES, DELIVERY_DESTS, QUICK_FACTORIES, CATEGORIES, SEASONS } from '@/lib/constants'
 import DatePickerWithDay from '@/components/DatePickerWithDay'
 
 interface Props {
@@ -14,6 +14,8 @@ interface Props {
 
 export default function OrderEditModal({ order, onClose, onSaved }: Props) {
   const [form, setForm] = useState({
+    season: order.season || '',
+    orderRound: order.orderRound || '',
     orderDate: order.orderDate,
     category: order.category,
     productCode: order.productCode,
@@ -33,6 +35,8 @@ export default function OrderEditModal({ order, onClose, onSaved }: Props) {
   const handleSave = async () => {
     setSaving(true)
     const updates = {
+      season: form.season,
+      order_round: form.orderRound,
       order_date: form.orderDate,
       category: form.category,
       product_code: form.productCode,
@@ -52,6 +56,8 @@ export default function OrderEditModal({ order, onClose, onSaved }: Props) {
     onSaved({
       ...order,
       ...form,
+      season: form.season,
+      orderRound: form.orderRound,
       expectedDeliveryDate: form.expectedDeliveryDate || null,
     })
   }
@@ -65,6 +71,33 @@ export default function OrderEditModal({ order, onClose, onSaved }: Props) {
         </div>
 
         <div className="p-6 space-y-4">
+          {/* 시즌 */}
+          <div>
+            <label className="text-xs font-semibold text-gray-500 block mb-1">시즌</label>
+            <div className="flex flex-wrap gap-1.5 mb-1.5">
+              {SEASONS.map(s => (
+                <button key={s} type="button"
+                  onClick={() => setForm(f => ({ ...f, season: s }))}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
+                    form.season === s ? 'bg-gray-900 text-white border-gray-900' : 'border-gray-200 text-gray-600 hover:border-gray-400'
+                  }`}>
+                  {s}
+                </button>
+              ))}
+            </div>
+            <input value={form.season} onChange={e => setForm(f => ({ ...f, season: e.target.value }))}
+              placeholder="시즌 (예: 26SS)"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200" />
+          </div>
+
+          {/* 차수 */}
+          <div>
+            <label className="text-xs font-semibold text-gray-500 block mb-1">발주 차수</label>
+            <input value={form.orderRound} onChange={e => setForm(f => ({ ...f, orderRound: e.target.value }))}
+              placeholder="차수 (예: 26-1차)"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200" />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold text-gray-500 block mb-1">발주일</label>

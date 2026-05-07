@@ -27,6 +27,7 @@ export interface Order {
   id: string
   orderDate: string
   orderRound: string
+  season: string
   category: Category
   productId: string | null
   productCode: string

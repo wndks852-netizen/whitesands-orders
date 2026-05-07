@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { CheckCircle, Package, Download } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Product, PaymentType, DeliveryDest } from '@/lib/types'
-import { DELIVERY_DESTS, QUICK_FACTORIES, ALL_MATERIALS } from '@/lib/constants'
+import { DELIVERY_DESTS, QUICK_FACTORIES, ALL_MATERIALS, ORDER_ROUNDS, SEASONS } from '@/lib/constants'
 import { SAMPLE_ORDERS } from '@/lib/sampleOrders'
 import ProductSearchInput from '@/components/ProductSearchInput'
 import DatePickerWithDay from '@/components/DatePickerWithDay'
@@ -21,6 +21,7 @@ export default function AdminOrdersPage() {
 
   const [form, setForm] = useState({
     orderDate: new Date().toISOString().split('T')[0],
+    season: '',
     orderRound: '',
     factory: '',
     factoryPaymentType: '계약금선납' as PaymentType,
@@ -56,6 +57,8 @@ export default function AdminOrdersPage() {
     setSaving(true)
     const rows = selectedColors.map(c => ({
       order_date: form.orderDate,
+      season: form.season,
+      order_round: form.orderRound,
       category: selectedProduct.category,
       product_id: selectedProduct.id,
       product_code: selectedProduct.productCode,
@@ -120,6 +123,7 @@ export default function AdminOrdersPage() {
     setLastRegisteredOrders([])
     setForm({
       orderDate: new Date().toISOString().split('T')[0],
+      season: '',
       orderRound: '',
       factory: '',
       factoryPaymentType: '계약금선납',
@@ -233,27 +237,65 @@ export default function AdminOrdersPage() {
             )}
           </div>
 
+          {/* 시즌 & 차수 */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+            <h3 className="text-sm font-semibold text-gray-700">시즌 & 차수</h3>
+
+            {/* 시즌 */}
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-2">시즌</label>
+              <div className="flex flex-wrap gap-2">
+                {SEASONS.map(s => (
+                  <button key={s} type="button"
+                    onClick={() => setForm(f => ({ ...f, season: s }))}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${
+                      form.season === s
+                        ? 'bg-gray-900 text-white border-gray-900'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                    }`}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+              <input value={form.season}
+                onChange={e => setForm(f => ({ ...f, season: e.target.value }))}
+                placeholder="직접 입력 (예: 26SS)"
+                className="mt-2 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200" />
+            </div>
+
+            {/* 차수 */}
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-2">발주 차수</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {ORDER_ROUNDS.slice(0, 12).map(r => (
+                  <button key={r} type="button"
+                    onClick={() => setForm(f => ({ ...f, orderRound: r }))}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                      form.orderRound === r
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                    }`}>
+                    {r}
+                  </button>
+                ))}
+              </div>
+              <input value={form.orderRound}
+                onChange={e => setForm(f => ({ ...f, orderRound: e.target.value }))}
+                placeholder="직접 입력 (예: 26-3차)"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200" />
+            </div>
+          </div>
+
           {/* 생산 정보 */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
             <h3 className="text-sm font-semibold text-gray-700">생산 정보</h3>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">발주일</label>
-                <DatePickerWithDay
-                  value={form.orderDate}
-                  onChange={v => setForm(f => ({ ...f, orderDate: v }))}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 block mb-1">차수 (예: 26-1차)</label>
-                <input
-                  value={form.orderRound}
-                  onChange={e => setForm(f => ({ ...f, orderRound: e.target.value }))}
-                  placeholder="26-1차"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-                />
-              </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">발주일</label>
+              <DatePickerWithDay
+                value={form.orderDate}
+                onChange={v => setForm(f => ({ ...f, orderDate: v }))}
+              />
             </div>
 
             <div>

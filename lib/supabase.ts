@@ -37,6 +37,7 @@ export function rowToOrder(row: any): Order {
     id: row.id,
     orderDate: row.order_date,
     orderRound: row.order_round || '',
+    season: row.season || '',
     category: row.category,
     productId: row.product_id,
     productCode: row.product_code,

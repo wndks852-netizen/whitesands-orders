@@ -4,7 +4,7 @@ import { Search, RefreshCw, Pencil, Trash2, Package, CreditCard, CheckSquare } f
 import dayjs from 'dayjs'
 import { supabase, rowToOrder } from '@/lib/supabase'
 import { Order, OrderStatus } from '@/lib/types'
-import { ORDER_STATUSES, STATUS_GROUPS } from '@/lib/constants'
+import { ORDER_STATUSES, STATUS_GROUPS, SEASONS } from '@/lib/constants'
 import MaterialChecklist from '@/components/MaterialChecklist'
 import StatusBadge from '@/components/StatusBadge'
 import OrderEditModal from '@/components/OrderEditModal'
@@ -14,6 +14,7 @@ export default function HomePage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [groupTab, setGroupTab] = useState('전체')
+  const [seasonFilter, setSeasonFilter] = useState('전체')
   const [categoryFilter, setCategoryFilter] = useState('전체')
   const [factoryFilter, setFactoryFilter] = useState('전체')
   const [searchQuery, setSearchQuery] = useState('')
@@ -126,6 +127,7 @@ export default function HomePage() {
   const filtered = orders.filter(o => {
     const group = STATUS_GROUPS.find(g => g.label === groupTab)
     if (group && group.statuses.length > 0 && !group.statuses.includes(o.status)) return false
+    if (seasonFilter !== '전체' && o.season !== seasonFilter) return false
     if (categoryFilter !== '전체' && o.category !== categoryFilter) return false
     if (factoryFilter !== '전체' && o.factory !== factoryFilter) return false
     if (searchQuery) {
@@ -202,6 +204,24 @@ export default function HomePage() {
               style={groupTab === g.label ? { backgroundColor: '#1a1a1a' } : {}}
             >
               {g.label} <span className="opacity-60 text-xs ml-1">({count})</span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* 시즌 필터 */}
+      <div className="flex gap-2 flex-wrap mb-3">
+        {(['전체', ...SEASONS] as string[]).map(s => {
+          const count = s === '전체' ? orders.length : orders.filter(o => o.season === s).length
+          if (s !== '전체' && count === 0) return null
+          return (
+            <button key={s} onClick={() => setSeasonFilter(s)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                seasonFilter === s
+                  ? 'bg-gray-900 text-white border-gray-900'
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+              }`}>
+              {s}<span className="ml-1 opacity-60">({count})</span>
             </button>
           )
         })}
@@ -380,10 +400,19 @@ export default function HomePage() {
 
                   {/* 차수 */}
                   <div>
-                    {order.orderRound ? (
-                      <span className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-lg font-bold whitespace-nowrap">
-                        {order.orderRound}
-                      </span>
+                    {order.orderRound || order.season ? (
+                      <div className="flex flex-col gap-1">
+                        {order.season && (
+                          <span className="inline-block bg-gray-900 text-white text-xs px-2 py-0.5 rounded-md font-bold">
+                            {order.season}
+                          </span>
+                        )}
+                        {order.orderRound && (
+                          <span className="inline-block bg-indigo-50 text-indigo-700 text-xs px-2 py-1 rounded-lg font-bold whitespace-nowrap">
+                            {order.orderRound}
+                          </span>
+                        )}
+                      </div>
                     ) : (
                       <span className="text-gray-300 text-xs">-</span>
                     )}
@@ -525,8 +554,13 @@ export default function HomePage() {
                       <p className="text-sm font-semibold text-gray-800 leading-snug">{order.productName}</p>
                       <p className="text-xs text-gray-400 mt-0.5">{order.productCode}</p>
                       <div className="flex gap-1.5 mt-1 flex-wrap">
+                        {order.season && (
+                          <span className="bg-gray-900 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+                            {order.season}
+                          </span>
+                        )}
                         {order.orderRound && (
-                          <span className="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full font-bold">
+                          <span className="bg-indigo-50 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-bold">
                             {order.orderRound}
                           </span>
                         )}

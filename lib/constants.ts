@@ -49,6 +49,20 @@ export const STATUS_GROUPS = [
   { label: '입고완료', statuses: ['1차입고', '2차입고', '3차입고', '4차입고', '입고완료'] },
 ]
 
+// 시즌 목록 (최신순)
+export const SEASONS = [
+  '26FW', '26SS', '25FW', '25SS', '24FW', '24SS',
+] as const
+
+export type Season = typeof SEASONS[number]
+
+// 차수 목록
+export const ORDER_ROUNDS = [
+  '26-1차', '26-2차', '26-3차', '26-4차', '26-5차', '26-6차',
+  '26-7차', '26-8차', '26-9차', '26-10차', '26-11차', '26-12차',
+  '25-1차', '25-2차', '25-3차', '25-4차', '25-5차', '25-6차',
+] as const
+
 export const BRAND_COLORS = {
   primary: '#1B2A4A',
   accent: '#C9A96E',
