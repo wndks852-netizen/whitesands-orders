@@ -7,6 +7,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import { Order, OrderStatus } from '@/lib/types'
 import { ORDER_STATUSES, STATUS_COLORS } from '@/lib/constants'
+import { getSeasonStyle } from '@/lib/utils'
 import MaterialChecklist from './MaterialChecklist'
 import dayjs from 'dayjs'
 
@@ -265,7 +266,7 @@ export default function OrderDetailModal({ order, onClose, onUpdated }: Props) {
               <p className="text-xs text-gray-400 font-mono">{order.productCode}</p>
               <div className="flex gap-1 mt-1 flex-wrap">
                 {order.season && (
-                  <span className="bg-gray-900 text-white text-xs px-2 py-0.5 rounded-full font-bold">{order.season}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${getSeasonStyle(order.season)}`}>{order.season}</span>
                 )}
                 {order.orderRound && (
                   <span className="bg-indigo-50 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-bold">{order.orderRound}</span>

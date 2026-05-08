@@ -5,6 +5,7 @@ import dayjs from 'dayjs'
 import { supabase, rowToOrder } from '@/lib/supabase'
 import { Order, OrderStatus } from '@/lib/types'
 import { ORDER_STATUSES, STATUS_GROUPS, SEASONS } from '@/lib/constants'
+import { getSeasonStyle } from '@/lib/utils'
 import MaterialChecklist from '@/components/MaterialChecklist'
 import StatusBadge from '@/components/StatusBadge'
 import OrderEditModal from '@/components/OrderEditModal'
@@ -214,12 +215,16 @@ export default function HomePage() {
         {(['전체', ...SEASONS] as string[]).map(s => {
           const count = s === '전체' ? orders.length : orders.filter(o => o.season === s).length
           if (s !== '전체' && count === 0) return null
+          const isActive = seasonFilter === s
+          const isSS = s.includes('SS')
+          const isFW = s.includes('FW')
+          let activeStyle = 'bg-gray-900 text-white border-gray-900'
+          if (isActive && isSS) activeStyle = 'bg-sky-500 text-white border-sky-500'
+          if (isActive && isFW) activeStyle = 'bg-gray-800 text-white border-gray-800'
           return (
             <button key={s} onClick={() => setSeasonFilter(s)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                seasonFilter === s
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                isActive ? activeStyle : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
               }`}>
               {s}<span className="ml-1 opacity-60">({count})</span>
             </button>
@@ -400,10 +405,10 @@ export default function HomePage() {
 
                   {/* 차수 */}
                   <div>
-                    {order.orderRound || order.season ? (
+                    {(order.season || order.orderRound) ? (
                       <div className="flex flex-col gap-1">
                         {order.season && (
-                          <span className="inline-block bg-gray-900 text-white text-xs px-2 py-0.5 rounded-md font-bold">
+                          <span className={`inline-block text-xs px-2 py-0.5 rounded-md font-bold ${getSeasonStyle(order.season)}`}>
                             {order.season}
                           </span>
                         )}
@@ -555,7 +560,7 @@ export default function HomePage() {
                       <p className="text-xs text-gray-400 mt-0.5">{order.productCode}</p>
                       <div className="flex gap-1.5 mt-1 flex-wrap">
                         {order.season && (
-                          <span className="bg-gray-900 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${getSeasonStyle(order.season)}`}>
                             {order.season}
                           </span>
                         )}
