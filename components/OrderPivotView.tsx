@@ -9,19 +9,6 @@ interface Props {
   onOrderUpdated: (updated: Order) => void
 }
 
-const STATUS_CELL_BG: Record<string, string> = {
-  '발주완료':       'bg-gray-50 border-gray-200',
-  '계약금송금대기': 'bg-amber-50 border-amber-100',
-  '샘플중':         'bg-yellow-50 border-yellow-100',
-  '생산중':         'bg-sky-50 border-sky-100',
-  '화물출고':       'bg-violet-50 border-violet-100',
-  '1차입고':        'bg-emerald-50 border-emerald-100',
-  '2차입고':        'bg-emerald-50 border-emerald-100',
-  '3차입고':        'bg-emerald-50 border-emerald-100',
-  '4차입고':        'bg-emerald-50 border-emerald-100',
-  '입고완료':       'bg-emerald-100 border-emerald-200',
-}
-
 const STATUS_DOT: Record<string, string> = {
   '발주완료':       'bg-gray-400',
   '계약금송금대기': 'bg-amber-400',
@@ -35,30 +22,35 @@ const STATUS_DOT: Record<string, string> = {
   '입고완료':       'bg-emerald-600',
 }
 
-function getSeasonBg(season: string) {
+const STATUS_CELL_BG: Record<string, string> = {
+  '발주완료':       'bg-gray-50 border-gray-200',
+  '계약금송금대기': 'bg-amber-50 border-amber-200',
+  '샘플중':         'bg-yellow-50 border-yellow-200',
+  '생산중':         'bg-sky-50 border-sky-200',
+  '화물출고':       'bg-violet-50 border-violet-200',
+  '1차입고':        'bg-emerald-50 border-emerald-200',
+  '2차입고':        'bg-emerald-50 border-emerald-200',
+  '3차입고':        'bg-emerald-50 border-emerald-200',
+  '4차입고':        'bg-emerald-50 border-emerald-200',
+  '입고완료':       'bg-emerald-100 border-emerald-300',
+}
+
+function getSeasonStyle(season: string) {
   if (!season) return 'bg-gray-800 text-white'
   if (season.includes('SS')) return 'bg-sky-500 text-white'
   if (season.includes('FW')) return 'bg-gray-800 text-white'
   return 'bg-gray-700 text-white'
 }
 
-function getRounds(group: Order[]): string[] {
-  const seen = new Set<string>()
-  const rounds: string[] = []
-  group.forEach(o => {
-    const r = o.orderRound || '차수없음'
-    if (!seen.has(r)) { seen.add(r); rounds.push(r) }
+function sortRounds(rounds: string[]): string[] {
+  return [...rounds].sort((a, b) => {
+    const yearA = parseInt(a.slice(0, 2)) || 0
+    const yearB = parseInt(b.slice(0, 2)) || 0
+    if (yearA !== yearB) return yearA - yearB
+    const numA = parseInt(a.replace(/[^0-9]/g, '').slice(-2)) || 0
+    const numB = parseInt(b.replace(/[^0-9]/g, '').slice(-2)) || 0
+    return numA - numB
   })
-  return rounds
-}
-
-function getColors(group: Order[]): string[] {
-  const seen = new Set<string>()
-  const colors: string[] = []
-  group.forEach(o => {
-    if (!seen.has(o.colorName)) { seen.add(o.colorName); colors.push(o.colorName) }
-  })
-  return colors
 }
 
 export default function OrderPivotView({ orders, onOrderUpdated }: Props) {
@@ -90,19 +82,13 @@ export default function OrderPivotView({ orders, onOrderUpdated }: Props) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {Object.entries(grouped).map(([productCode, group]) => {
         const first = group[0]
-        const rounds = getRounds(group)
-        const colors = getColors(group)
         const isCollapsed = collapsed.has(productCode)
 
-        const roundTotals: Record<string, number> = {}
-        rounds.forEach(r => {
-          roundTotals[r] = group
-            .filter(o => (o.orderRound || '차수없음') === r)
-            .reduce((s, o) => s + o.orderQty, 0)
-        })
+        const rounds = sortRounds(Array.from(new Set(group.map(o => o.orderRound || '차수없음'))))
+        const colors = Array.from(new Set(group.map(o => o.colorName)))
         const grandTotal = group.reduce((s, o) => s + o.orderQty, 0)
 
         return (
@@ -111,65 +97,71 @@ export default function OrderPivotView({ orders, onOrderUpdated }: Props) {
             {/* 상품 헤더 */}
             <button
               onClick={() => toggleCollapse(productCode)}
-              className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors text-left"
+              className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors text-left"
             >
               {first.imageUrl ? (
                 <img src={first.imageUrl} alt={first.productName}
-                  className="w-11 h-11 rounded-xl object-cover border border-gray-100 flex-shrink-0" />
+                  className="w-10 h-10 rounded-xl object-cover border border-gray-100 flex-shrink-0" />
               ) : (
-                <div className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                  <Package size={16} className="text-gray-400" />
+                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  <Package size={14} className="text-gray-400" />
                 </div>
               )}
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {first.season && (
-                    <span className={`text-xs px-2 py-0.5 rounded-md font-bold ${getSeasonBg(first.season)}`}>
-                      {first.season}
-                    </span>
-                  )}
-                  <p className="text-sm font-bold text-gray-900 truncate">{first.productName}</p>
-                </div>
-                <p className="text-xs text-gray-400 font-mono mt-0.5">{productCode}</p>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                {first.season && (
+                  <span className={`text-xs px-2 py-0.5 rounded-md font-bold flex-shrink-0 ${getSeasonStyle(first.season)}`}>
+                    {first.season}
+                  </span>
+                )}
+                <p className="text-sm font-bold text-gray-900 truncate">{first.productName}</p>
+                <p className="text-xs text-gray-400 font-mono flex-shrink-0">{productCode}</p>
               </div>
 
-              <div className="flex items-center gap-4 flex-shrink-0">
-                <div className="text-right">
-                  <p className="text-xs text-gray-400">총 발주</p>
-                  <p className="text-sm font-bold text-gray-900">{grandTotal.toLocaleString()}개</p>
+              <div className="flex items-center gap-5 flex-shrink-0 text-right">
+                <div>
+                  <p className="text-xs text-gray-400 leading-none mb-0.5">총 발주</p>
+                  <p className="text-sm font-bold text-gray-900">{grandTotal.toLocaleString()}<span className="text-xs text-gray-400 font-normal ml-0.5">개</span></p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-gray-400">컬러</p>
-                  <p className="text-sm font-bold text-gray-900">{colors.length}색</p>
+                <div>
+                  <p className="text-xs text-gray-400 leading-none mb-0.5">컬러</p>
+                  <p className="text-sm font-bold text-gray-900">{colors.length}<span className="text-xs text-gray-400 font-normal ml-0.5">색</span></p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-gray-400">차수</p>
-                  <p className="text-sm font-bold text-gray-900">{rounds.length}차</p>
+                <div>
+                  <p className="text-xs text-gray-400 leading-none mb-0.5">차수</p>
+                  <p className="text-sm font-bold text-gray-900">{rounds.length}<span className="text-xs text-gray-400 font-normal ml-0.5">차</span></p>
                 </div>
                 {isCollapsed
-                  ? <ChevronDown size={16} className="text-gray-400" />
-                  : <ChevronUp size={16} className="text-gray-400" />
+                  ? <ChevronDown size={15} className="text-gray-400" />
+                  : <ChevronUp size={15} className="text-gray-400" />
                 }
               </div>
             </button>
 
             {/* 피벗 테이블 */}
             {!isCollapsed && (
-              <div className="px-5 pb-5 overflow-x-auto">
-                <table className="w-full text-sm border-collapse" style={{ minWidth: `${Math.max(400, rounds.length * 120 + 120)}px` }}>
+              <div className="border-t border-gray-100 overflow-x-auto">
+                <table className="border-collapse" style={{ tableLayout: 'fixed', width: `${120 + rounds.length * 160 + 100}px` }}>
+                  <colgroup>
+                    <col style={{ width: '120px' }} />
+                    {rounds.map(r => <col key={r} style={{ width: '160px' }} />)}
+                    <col style={{ width: '100px' }} />
+                  </colgroup>
+
                   <thead>
-                    <tr>
-                      <th className="text-left text-xs font-semibold text-gray-400 pb-2 pr-4 w-28">컬러</th>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                      <th className="px-4 py-2.5 text-left">
+                        <span className="text-xs font-semibold text-gray-400">컬러</span>
+                      </th>
                       {rounds.map(round => (
-                        <th key={round} className="text-center text-xs font-bold text-gray-600 pb-2 px-2 min-w-28">
-                          <span className="inline-block bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg">
+                        <th key={round} className="px-3 py-2.5 text-center border-l border-gray-100">
+                          <span className="inline-block bg-indigo-50 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded-lg">
                             {round}
                           </span>
                         </th>
                       ))}
-                      <th className="text-center text-xs font-bold text-gray-600 pb-2 px-2 min-w-20">
-                        <span className="inline-block bg-gray-100 text-gray-600 px-2.5 py-1 rounded-lg">합계</span>
+                      <th className="px-3 py-2.5 text-center border-l border-gray-100">
+                        <span className="text-xs font-semibold text-gray-400">합계</span>
                       </th>
                     </tr>
                   </thead>
@@ -181,8 +173,8 @@ export default function OrderPivotView({ orders, onOrderUpdated }: Props) {
                         .reduce((s, o) => s + o.orderQty, 0)
 
                       return (
-                        <tr key={colorName}>
-                          <td className="py-2 pr-4">
+                        <tr key={colorName} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-4 py-3">
                             <span className="text-xs font-semibold text-gray-700">{colorName}</span>
                           </td>
 
@@ -193,68 +185,55 @@ export default function OrderPivotView({ orders, onOrderUpdated }: Props) {
 
                             if (!order) {
                               return (
-                                <td key={round} className="py-2 px-2 text-center">
-                                  <div className="h-14 flex items-center justify-center">
-                                    <span className="text-gray-200 text-xs">—</span>
+                                <td key={round} className="px-3 py-3 border-l border-gray-100">
+                                  <div className="h-14 rounded-xl border border-dashed border-gray-200 flex items-center justify-center">
+                                    <span className="text-gray-200 text-sm font-light">—</span>
                                   </div>
                                 </td>
                               )
                             }
 
-                            const warehouseQty = order.warehouseQty || 0
-                            const remaining = order.orderQty - warehouseQty
+                            const wQty = order.warehouseQty || 0
+                            const remaining = order.orderQty - wQty
                             const pct = order.orderQty > 0
-                              ? Math.min(Math.round((warehouseQty / order.orderQty) * 100), 100)
+                              ? Math.min(Math.round((wQty / order.orderQty) * 100), 100)
                               : 0
 
                             return (
-                              <td key={round} className="py-2 px-2">
+                              <td key={round} className="px-3 py-3 border-l border-gray-100">
                                 <button
                                   onClick={() => setDetailOrder(order)}
-                                  className={`w-full rounded-xl border p-2.5 text-left transition-all hover:shadow-md hover:scale-[1.02] active:scale-100 ${STATUS_CELL_BG[order.status] || 'bg-gray-50 border-gray-200'}`}
+                                  className={`w-full h-14 rounded-xl border px-3 py-2 text-left transition-all hover:shadow-md hover:brightness-95 active:scale-[0.98] flex flex-col justify-between ${STATUS_CELL_BG[order.status] || 'bg-gray-50 border-gray-200'}`}
                                 >
-                                  <div className="flex items-baseline gap-1 mb-1.5">
-                                    <span className="text-base font-black text-gray-900 leading-none">
+                                  <div className="flex items-baseline justify-between">
+                                    <span className="text-base font-black text-gray-900 leading-none tracking-tight">
                                       {order.orderQty.toLocaleString()}
+                                      <span className="text-xs font-normal text-gray-400 ml-0.5">개</span>
                                     </span>
-                                    <span className="text-xs text-gray-400 font-normal">개</span>
+                                    {wQty > 0 && (
+                                      <span className="text-xs text-emerald-600 font-medium leading-none">
+                                        입고 {wQty.toLocaleString()}
+                                      </span>
+                                    )}
                                   </div>
-
-                                  <div className="flex items-center gap-1 mb-2">
+                                  <div className="flex items-center gap-1.5">
                                     <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[order.status] || 'bg-gray-400'}`} />
-                                    <span className="text-xs text-gray-500 font-medium leading-none truncate">
+                                    <span className="text-xs text-gray-500 font-medium leading-none truncate flex-1">
                                       {order.status}
                                     </span>
+                                    {pct > 0 && (
+                                      <span className="text-xs text-gray-400 leading-none flex-shrink-0">{pct}%</span>
+                                    )}
                                   </div>
-
-                                  {warehouseQty > 0 ? (
-                                    <div>
-                                      <div className="h-1 bg-white/70 rounded-full overflow-hidden mb-1">
-                                        <div
-                                          className={`h-full rounded-full ${pct >= 100 ? 'bg-emerald-500' : 'bg-sky-400'}`}
-                                          style={{ width: `${pct}%` }}
-                                        />
-                                      </div>
-                                      <div className="flex justify-between text-xs text-gray-400">
-                                        <span>입고 {warehouseQty.toLocaleString()}</span>
-                                        {remaining > 0
-                                          ? <span>잔 {remaining.toLocaleString()}</span>
-                                          : <span className="text-emerald-500 font-medium">완료</span>
-                                        }
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="text-xs text-gray-300">미입고</div>
-                                  )}
                                 </button>
                               </td>
                             )
                           })}
 
-                          <td className="py-2 px-2 text-center">
-                            <div className="bg-gray-50 rounded-xl border border-gray-200 p-2.5">
-                              <span className="text-sm font-bold text-gray-800">{colorTotal.toLocaleString()}</span>
-                              <div className="text-xs text-gray-400 mt-0.5">개</div>
+                          <td className="px-3 py-3 border-l border-gray-100">
+                            <div className="h-14 rounded-xl border border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-0.5">
+                              <span className="text-sm font-bold text-gray-800 leading-none">{colorTotal.toLocaleString()}</span>
+                              <span className="text-xs text-gray-400 leading-none">개</span>
                             </div>
                           </td>
                         </tr>
@@ -263,22 +242,27 @@ export default function OrderPivotView({ orders, onOrderUpdated }: Props) {
                   </tbody>
 
                   <tfoot>
-                    <tr className="border-t border-gray-100">
-                      <td className="pt-2 pr-4">
+                    <tr className="border-t-2 border-gray-200 bg-gray-50">
+                      <td className="px-4 py-2.5">
                         <span className="text-xs font-bold text-gray-500">합계</span>
                       </td>
-                      {rounds.map(round => (
-                        <td key={round} className="pt-2 px-2 text-center">
-                          <div className="bg-indigo-50 rounded-xl border border-indigo-100 p-2">
-                            <span className="text-sm font-bold text-indigo-700">{roundTotals[round].toLocaleString()}</span>
-                            <div className="text-xs text-indigo-400 mt-0.5">개</div>
-                          </div>
-                        </td>
-                      ))}
-                      <td className="pt-2 px-2 text-center">
-                        <div className="bg-gray-900 rounded-xl p-2">
-                          <span className="text-sm font-bold text-white">{grandTotal.toLocaleString()}</span>
-                          <div className="text-xs text-gray-400 mt-0.5">개</div>
+                      {rounds.map(round => {
+                        const roundTotal = group
+                          .filter(o => (o.orderRound || '차수없음') === round)
+                          .reduce((s, o) => s + o.orderQty, 0)
+                        return (
+                          <td key={round} className="px-3 py-2.5 text-center border-l border-gray-200">
+                            <div className="h-10 bg-indigo-50 rounded-xl border border-indigo-100 flex flex-col items-center justify-center gap-0.5">
+                              <span className="text-sm font-bold text-indigo-700 leading-none">{roundTotal.toLocaleString()}</span>
+                              <span className="text-xs text-indigo-400 leading-none">개</span>
+                            </div>
+                          </td>
+                        )
+                      })}
+                      <td className="px-3 py-2.5 border-l border-gray-200">
+                        <div className="h-10 bg-gray-900 rounded-xl flex flex-col items-center justify-center gap-0.5">
+                          <span className="text-sm font-bold text-white leading-none">{grandTotal.toLocaleString()}</span>
+                          <span className="text-xs text-gray-400 leading-none">개</span>
                         </div>
                       </td>
                     </tr>
