@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { Search, RefreshCw, Pencil, Trash2, Package, CreditCard, CheckSquare } from 'lucide-react'
+import { Search, RefreshCw, Pencil, Trash2, Package, CreditCard, CheckSquare, LayoutList, LayoutGrid } from 'lucide-react'
 import dayjs from 'dayjs'
 import { supabase, rowToOrder } from '@/lib/supabase'
 import { Order, OrderStatus } from '@/lib/types'
@@ -10,6 +10,7 @@ import MaterialChecklist from '@/components/MaterialChecklist'
 import StatusBadge from '@/components/StatusBadge'
 import OrderEditModal from '@/components/OrderEditModal'
 import OrderDetailModal from '@/components/OrderDetailModal'
+import OrderPivotView from '@/components/OrderPivotView'
 
 export default function HomePage() {
   const [orders, setOrders] = useState<Order[]>([])
@@ -19,6 +20,7 @@ export default function HomePage() {
   const [categoryFilter, setCategoryFilter] = useState('전체')
   const [factoryFilter, setFactoryFilter] = useState('전체')
   const [searchQuery, setSearchQuery] = useState('')
+  const [viewMode, setViewMode] = useState<'list' | 'group'>('list')
   const [editingOrder, setEditingOrder] = useState<Order | null>(null)
   const [detailOrder, setDetailOrder] = useState<Order | null>(null)
 
@@ -254,6 +256,25 @@ export default function HomePage() {
         <button onClick={fetchOrders} className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50">
           <RefreshCw size={14} className="text-gray-400" />
         </button>
+        {/* 뷰 전환 */}
+        <div className="flex items-center bg-gray-100 rounded-xl p-1 gap-1">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            <LayoutList size={13} />리스트
+          </button>
+          <button
+            onClick={() => setViewMode('group')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              viewMode === 'group' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            <LayoutGrid size={13} />그룹
+          </button>
+        </div>
         {isAdmin && (
           <button
             onClick={() => setEditMode(m => !m)}
@@ -362,6 +383,11 @@ export default function HomePage() {
           <Package size={40} className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">발주 내역이 없습니다.</p>
         </div>
+      ) : viewMode === 'group' ? (
+        <OrderPivotView
+          orders={filtered}
+          onOrderUpdated={updated => handleUpdate(updated.id, updated)}
+        />
       ) : (
         <div className="space-y-1.5">
           {filtered.map(order => {
